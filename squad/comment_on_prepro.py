@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-# @Time    : 21/12/2017 6:26 PM
-# @Author  : 伊甸一点
-# @FileName: comment_on_prepro.py
-# @Software: PyCharm
-# @Blog    : http://zpfbuaa.github.io
 
 # -*- coding: utf-8 -*-
 # @Time    : 20/12/2017 11:28 PM
@@ -272,18 +266,18 @@ def prepro_each(args, data_type, start_ratio=0.0, stop_ratio=1.0, out_name="defa
                 ids.append(qa['id']) # qa['id'] store the question id, therefore ids are total question ids
                 idxs.append(len(idxs)) # that means 0 , 1, 2, 3, ... n-1
                 answerss.append(answers) # answers store the answer_text, therefore answerss store the total answers
-                print ('q',q)
-                print ('cq', cq)
-                print ('y', y)
-                print ('cy', cy)
-                print ('rx', rx)
-                print ('rcx', rcx)
-                print ('ids', ids)
-                print ('idxs', idxs)
-                print ('answerss', answerss)
-                print ('x', x)
-                print ('cx', cx)
-                print ('p', p)
+                # print ('q',q)
+                # print ('cq', cq)
+                # print ('y', y)
+                # print ('cy', cy)
+                # print ('rx', rx)
+                # print ('rcx', rcx)
+                # print ('ids', ids)
+                # print ('idxs', idxs)
+                # print ('answerss', answerss)
+                # print ('x', x)
+                # print ('cx', cx)
+                # print ('p', p)
 
             if args.debug:
                 break
