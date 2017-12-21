@@ -241,7 +241,7 @@ def read_data(config, data_type, ref, data_filter=None):
         new_emb_mat = np.array([idx2vec_dict[idx] for idx in range(len(idx2vec_dict))], dtype='float32')
         shared['new_emb_mat'] = new_emb_mat
 
-    data_set = DataSet(data, data_type, shared=shared, valid_idxs=valid_idxs)
+    data_set = DataSet(data, data_type, shared=shared, valid_idxs=valid_idxs) # self definition dataset
     return data_set
 
 
@@ -309,7 +309,13 @@ def get_squad_data_filter(config):
         return True
     return data_filter
 
-
+"""
+# mode: default test 
+# num_sents_th: default 8
+# sent_size_th: default 400
+# para_size_th: default 256
+# word_size_th: default 16 len(internationally) = 15
+"""
 def update_config(config, data_sets):
     config.max_num_sents = 0
     config.max_sent_size = 0
@@ -319,31 +325,52 @@ def update_config(config, data_sets):
     for data_set in data_sets:
         data = data_set.data
         shared = data_set.shared
-        for idx in data_set.valid_idxs:
-            rx = data['*x'][idx]
-            q = data['q'][idx]
-            sents = shared['x'][rx[0]][rx[1]]
-            config.max_para_size = max(config.max_para_size, sum(map(len, sents)))
+        for idx in data_set.valid_idxs: # total load question numbers !!!
+            # TODO: this is quiet important! create pair (articel_id, such_article_paragraph_id) for each question
+            # FIXME: actual rx is not a rx as before!!!
+            rx = data['*x'][idx] # the idx's pair of article, paragraph. This means: this question belong to which paragraph and which article
+            q = data['q'][idx] # the idx's question
+            sents = shared['x'][rx[0]][rx[1]] # (article_id, paragraph_id)
+            config.max_para_size = max(config.max_para_size, sum(map(len, sents))) # WARNNING: here is sum
             config.max_num_sents = max(config.max_num_sents, len(sents))
-            config.max_sent_size = max(config.max_sent_size, max(map(len, sents)))
+            config.max_sent_size = max(config.max_sent_size, max(map(len, sents))) # here is max
             config.max_word_size = max(config.max_word_size, max(len(word) for sent in sents for word in sent))
             if len(q) > 0:
+                """
+                ########## 2017_12_22 01:40:34 zpf ##########
+                # find the max args
+                # max_ques_size to max
+                # 
+                """
                 config.max_ques_size = max(config.max_ques_size, len(q))
                 config.max_word_size = max(config.max_word_size, max(len(word) for word in q))
 
     if config.mode == 'train':
+        """
+        ########## 2017_12_22 01:35:18 zpf ##########
+        # update the config 
+        """
+        # TODO: find the min args!!!!
         config.max_num_sents = min(config.max_num_sents, config.num_sents_th)
         config.max_sent_size = min(config.max_sent_size, config.sent_size_th)
         config.max_para_size = min(config.max_para_size, config.para_size_th)
 
+    # max_word_size to min
+    # if larger than 16 then to 16
     config.max_word_size = min(config.max_word_size, config.word_size_th)
 
+    """
+    # char_vocab_size
+    # word_emb_size
+    # word_vocab_size
+    """
+    # TODO: analysis those parameters!
     config.char_vocab_size = len(data_sets[0].shared['char2idx'])
     config.word_emb_size = len(next(iter(data_sets[0].shared['word2vec'].values())))
     config.word_vocab_size = len(data_sets[0].shared['word2idx'])
 
     if config.single:
-        config.max_num_sents = 1
+        config.max_num_sents = 1 # FIXME : this just confirm my upper guess!
     if config.squash:
         config.max_sent_size = config.max_para_size
         config.max_num_sents = 1

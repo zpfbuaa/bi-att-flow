@@ -65,7 +65,11 @@ def _config_debug(config):
 def _train(config):
     data_filter = get_squad_data_filter(config) # this function return is also a function
     train_data = read_data(config, 'train', config.load, data_filter=data_filter) # config.load default is true
-    dev_data = read_data(config, 'dev', True, data_filter=data_filter)
+    dev_data = read_data(config, 'dev', True, data_filter=data_filter) # always load from file
+    """
+    # train_data type: <DataSet>
+    # dev_data type: <DataSet>
+    """
     update_config(config, [train_data, dev_data])
 
     _config_debug(config)
