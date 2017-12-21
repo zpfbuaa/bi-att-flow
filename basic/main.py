@@ -63,8 +63,8 @@ def _config_debug(config):
 
 
 def _train(config):
-    data_filter = get_squad_data_filter(config)
-    train_data = read_data(config, 'train', config.load, data_filter=data_filter)
+    data_filter = get_squad_data_filter(config) # this function return is also a function
+    train_data = read_data(config, 'train', config.load, data_filter=data_filter) # config.load default is true
     dev_data = read_data(config, 'dev', True, data_filter=data_filter)
     update_config(config, [train_data, dev_data])
 

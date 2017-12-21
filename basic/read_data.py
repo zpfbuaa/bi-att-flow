@@ -155,17 +155,22 @@ def load_metadata(config, data_type):
         return metadata
 
 
+"""
+# data_type : dev, train
+# ref: whether load data from the prepro saved files.
+# data_filter: to filter some data
+"""
 def read_data(config, data_type, ref, data_filter=None):
-    data_path = os.path.join(config.data_dir, "data_{}.json".format(data_type))
+    data_path = os.path.join(config.data_dir, "data_{}.json".format(data_type)) # data_dir default is 'data/squad'
     shared_path = os.path.join(config.data_dir, "shared_{}.json".format(data_type))
     with open(data_path, 'r') as fh:
         data = json.load(fh)
     with open(shared_path, 'r') as fh:
         shared = json.load(fh)
 
-    num_examples = len(next(iter(data.values())))
+    num_examples = len(next(iter(data.values()))) # total number of question
     if data_filter is None:
-        valid_idxs = range(num_examples)
+        valid_idxs = range(num_examples) # if no data_filter passed in, then this valid_idxs is just a list from [0,1,2,3, ... , len(num_examples)
     else:
         mask = []
         keys = data.keys()
@@ -176,45 +181,61 @@ def read_data(config, data_type, ref, data_filter=None):
         valid_idxs = [idx for idx in range(len(mask)) if mask[idx]]
 
     print("Loaded {}/{} examples from {}".format(len(valid_idxs), num_examples, data_type))
-
+    """
+    # shared_path: default  ""
+    # lower_word: default  True
+    # lower_word: default  True
+    # finetune: default False
+    # known_if_glove: default True
+    # use_glove_for_unk: default True
+    # word_count_th: default 10 [ only a word appears time over this value can be added into data]
+    # char_counter: default 50 [only a character appears time over 50 can be added into data]
+    """
     shared_path = config.shared_path or os.path.join(config.out_dir, "shared.json")
-    if not ref:
-        word2vec_dict = shared['lower_word2vec'] if config.lower_word else shared['word2vec']
-        word_counter = shared['lower_word_counter'] if config.lower_word else shared['word_counter']
+    if not ref: # if not read from save file FIXME: to run this code piece, need to change ref to False [means: change config.load to False]
+        word2vec_dict = shared['lower_word2vec'] if config.lower_word else shared['word2vec'] # back to file prepro.py
+        word_counter = shared['lower_word_counter'] if config.lower_word else shared['word_counter']# back to file prepro.py
         char_counter = shared['char_counter']
         if config.finetune:
-            shared['word2idx'] = {word: idx + 2 for idx, word in
+            shared['word2idx'] = {word: idx + 2 for idx, word in # FIXME: don't get why idx + 2
                                   enumerate(word for word, count in word_counter.items()
                                             if count > config.word_count_th or (config.known_if_glove and word in word2vec_dict))}
         else:
             assert config.known_if_glove
             assert config.use_glove_for_unk
-            shared['word2idx'] = {word: idx + 2 for idx, word in
+            shared['word2idx'] = {word: idx + 2 for idx, word in # FIXME: don't get why idx + 2
                                   enumerate(word for word, count in word_counter.items()
-                                            if count > config.word_count_th and word not in word2vec_dict)}
+                                            if count > config.word_count_th and word not in word2vec_dict)} # FIXME: don't underatand why word not in word2vec_dict
         shared['char2idx'] = {char: idx + 2 for idx, char in
                               enumerate(char for char, count in char_counter.items()
                                         if count > config.char_count_th)}
         NULL = "-NULL-"
         UNK = "-UNK-"
-        shared['word2idx'][NULL] = 0
+        shared['word2idx'][NULL] = 0 # shared['word2idx'] type dict
         shared['word2idx'][UNK] = 1
-        shared['char2idx'][NULL] = 0
-        shared['char2idx'][UNK] = 1
-        json.dump({'word2idx': shared['word2idx'], 'char2idx': shared['char2idx']}, open(shared_path, 'w'))
+        shared['char2idx'][NULL] = 0 # shared['char2idx'] type dict
+        shared['char2idx'][UNK] = 1 # TODO: unkonw character or NULL just to 1
+        json.dump({'word2idx': shared['word2idx'], 'char2idx': shared['char2idx']}, open(shared_path, 'w')) # add shared json to file
     else:
-        new_shared = json.load(open(shared_path, 'r'))
+        new_shared = json.load(open(shared_path, 'r')) # just read shared_file
         for key, val in new_shared.items():
-            shared[key] = val
-
+            shared[key] = val # read from file
+    """
+    # this handle the word in word2vec_dict but not appear in shared['word2idx']
+    # word2vec_dict >= word2idx
+    # 1. create a new_word2idx_dict
+    # 2. calculate idx2vec_dict 
+    # 3. change idx2vec_dict to numpy array (float)
+    # 3. create a new key: new_emb_mat
+    """
     if config.use_glove_for_unk:
         # create new word2idx and word2vec
         word2vec_dict = shared['lower_word2vec'] if config.lower_word else shared['word2vec']
         new_word2idx_dict = {word: idx for idx, word in enumerate(word for word in word2vec_dict.keys() if word not in shared['word2idx'])}
         shared['new_word2idx'] = new_word2idx_dict
         offset = len(shared['word2idx'])
-        word2vec_dict = shared['lower_word2vec'] if config.lower_word else shared['word2vec']
-        new_word2idx_dict = shared['new_word2idx']
+        word2vec_dict = shared['lower_word2vec'] if config.lower_word else shared['word2vec'] # FIXME: this is duplicate with the above code
+        new_word2idx_dict = shared['new_word2idx'] # FIXME: whether thc code is useful?
         idx2vec_dict = {idx: word2vec_dict[word] for word, idx in new_word2idx_dict.items()}
         # print("{}/{} unique words have corresponding glove vectors.".format(len(idx2vec_dict), len(word2idx_dict)))
         new_emb_mat = np.array([idx2vec_dict[idx] for idx in range(len(idx2vec_dict))], dtype='float32')
@@ -225,8 +246,20 @@ def read_data(config, data_type, ref, data_filter=None):
 
 
 def get_squad_data_filter(config):
-    def data_filter(data_point, shared):
+    def data_filter(data_point, shared): # TODO: complete to analyse the data_filter
         assert shared is not None
+        """
+        ############# [2017_12_21 15:35:07 zpf] #############
+        Detail About the Data Type: 
+        rx: [article_id, paragraph_id] (from 0 to article_num - 1 ) (from 0 to paragraph_num - 1)
+        rcx: the same as rx
+        q: [question_1_list_word_level, question_2_word_level_list ...]
+        cq: [question_1_list_character_level_list, question_2_list_character_level_list ...]
+        y: [ [[(0,answer1_start_idx),(-,answer1_end_idx)]], [[(0,answer2_start_idx),(-,answer2_end_idx)]] ... [[]] ]
+        x: [ [[[article1_paragraph1_word1,paragraph1_word2 ...]] , [[paragraph2_word1, paragraph2_word2 ...]], ...], [[[]]] ]
+        cx: [[ [[[paragraph1_word1_char1,paragraph1_word1_char2...], [paragraph1_word2_char1,paragraph1_word1_char2 ...]]] , [[[p2_w1_c1,p2_w1_c2...],[p2_w2_c1,p2_w2_c2...],]] ... [[]] ]]
+        """
+
         rx, rcx, q, cq, y = (data_point[key] for key in ('*x', '*cx', 'q', 'cq', 'y'))
         x, cx = shared['x'], shared['cx']
         if len(q) > config.ques_size_th:
@@ -237,7 +270,7 @@ def get_squad_data_filter(config):
         if config.squash:
             for start, stop in y:
                 stop_offset = sum(map(len, xi[:stop[0]]))
-                if stop_offset + stop[1] > config.para_size_th:
+                if stop_offset + stop[1] > config.para_size_th: # para_size_th default is 256
                     return False
             return True
 
@@ -248,11 +281,11 @@ def get_squad_data_filter(config):
 
         if config.data_filter == 'max':
             for start, stop in y:
-                    if stop[0] >= config.num_sents_th:
+                    if stop[0] >= config.num_sents_th: # num_sents_th default is 8
                         return False
                     if start[0] != stop[0]:
                         return False
-                    if stop[1] >= config.sent_size_th:
+                    if stop[1] >= config.sent_size_th: # sent_size_th default is 400
                         return False
         elif config.data_filter == 'valid':
             if len(xi) > config.num_sents_th:
@@ -266,7 +299,7 @@ def get_squad_data_filter(config):
             for start, stop in y:
                 if stop[0] >= config.num_sents_th:
                     return False
-                if start[0] != start[0]:
+                if start[0] != start[0]: # this is wrong FIXME: start[0] != stop[0]
                     return False
                 if len(xi[start[0]]) > config.sent_size_th:
                     return False

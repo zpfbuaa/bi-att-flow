@@ -82,7 +82,13 @@ def save(args, data, shared, data_type):
     json.dump(data, open(data_path, 'w'))
     json.dump(shared, open(shared_path, 'w'))
 
-
+"""
+############### 2017_12_21 16:52:37 zpf ###############
+# glove_dir: home + '/data/glove/'
+# glove_vec_size:  default value is 100
+# glove_corpus : default value is 6B
+# glove_file: glove.6B.100d.txt
+"""
 def get_word2vec(args, word_counter):
     glove_path = os.path.join(args.glove_dir, "glove.{}.{}d.txt".format(args.glove_corpus, args.glove_vec_size))
     sizes = {'6B': int(4e5), '42B': int(1.9e6), '840B': int(2.2e6), '2B': int(1.2e6)}
@@ -90,16 +96,16 @@ def get_word2vec(args, word_counter):
     word2vec_dict = {}
     with open(glove_path, 'r', encoding='utf-8') as fh:
         for line in tqdm(fh, total=total):
-            array = line.lstrip().rstrip().split(" ")
-            word = array[0]
-            vector = list(map(float, array[1:]))
+            array = line.lstrip().rstrip().split(" ") # lstrip remove the spaces lies on the left and right of the line,then split by space
+            word = array[0] # the first in the array is a word
+            vector = list(map(float, array[1:])) # first change type to float and the change to list
             if word in word_counter:
-                word2vec_dict[word] = vector
-            elif word.capitalize() in word_counter:
+                word2vec_dict[word] = vector # word_vec  each for each just by using dic
+            elif word.capitalize() in word_counter: # return a word, change the first character to upper(), and change other characters to lower()
                 word2vec_dict[word.capitalize()] = vector
-            elif word.lower() in word_counter:
+            elif word.lower() in word_counter: # word to lower()
                 word2vec_dict[word.lower()] = vector
-            elif word.upper() in word_counter:
+            elif word.upper() in word_counter: # word to upper()
                 word2vec_dict[word.upper()] = vector
 
     print("{}/{} of word vocab have corresponding vectors in {}".format(len(word2vec_dict), len(word_counter), glove_path))
@@ -132,7 +138,7 @@ def prepro_each(args, data_type, start_ratio=0.0, stop_ratio=1.0, out_name="defa
     x, cx = [], []
     answerss = []
     p = []
-    word_counter, char_counter, lower_word_counter = Counter(), Counter(), Counter()
+    word_counter, char_counter, lower_word_counter = Counter(), Counter(), Counter() # Counter() key: item, value: the times of item appears
     start_ai = int(round(len(source_data['data']) * start_ratio))
     stop_ai = int(round(len(source_data['data']) * stop_ratio))
     for ai, article in enumerate(tqdm(source_data['data'][start_ai:stop_ai])):
@@ -207,9 +213,9 @@ def prepro_each(args, data_type, start_ratio=0.0, stop_ratio=1.0, out_name="defa
 
                 for qij in qi:
                     word_counter[qij] += 1
-                    lower_word_counter[qij.lower()] += 1
+                    lower_word_counter[qij.lower()] += 1 # lower_word_counter in question
                     for qijk in qij:
-                        char_counter[qijk] += 1
+                        char_counter[qijk] += 1 # character_counter in question (this can include Upper() character )
 
                 q.append(qi)
                 cq.append(cqi)
