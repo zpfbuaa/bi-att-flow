@@ -299,7 +299,7 @@ def get_squad_data_filter(config):
             for start, stop in y:
                 if stop[0] >= config.num_sents_th:
                     return False
-                if start[0] != start[0]: # this is wrong FIXME: start[0] != stop[0]
+                if start[0] != start[0]: # FIXME: start[0] != stop[0] this is wrong ? i am not sure.
                     return False
                 if len(xi[start[0]]) > config.sent_size_th:
                     return False
